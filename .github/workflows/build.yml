@@ -1,0 +1,44 @@
+name: Build Tokens
+
+on:
+  push:
+    paths:
+      - 'tokens/**'
+      - 'config/**'
+      - 'package.json'
+      - 'style-dictionary.config.*'
+  workflow_dispatch:  # 수동 실행도 가능하게
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Transform Tokens
+      run: |
+        npx token-transformer tokens/tokensfigma_token.json tokens-transformed.json global
+
+    - name: Build Style Dictionary
+      run: |
+        npx style-dictionary build --config config/config.json
+
+    - name: Commit and push changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add tokens-transformed.json build/
+        git commit -m "🔄 자동 토큰 변환 및 CSS 빌드"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
